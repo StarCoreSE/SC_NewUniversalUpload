@@ -1,0 +1,15 @@
+﻿{
+  "RepositoryPath": "C:\\actions-runner\\_work\\SCModRepository\\SCModRepository\\",
+  "AppdataModsPath": "C:\\Users\\MuzzHammer\\AppData\\Roaming\\SpaceEngineers\\Mods\\",
+  "SteamCmdPath": "C:\\steamcmd\\steamcmd.exe",
+
+  "UploaderAccountName": "invalssteamlinkbot",
+  "UploaderAccountPassword": "[redacted]",
+  "UploaderAccountSteamId": "76561199117576365",
+
+  "DefaultGitBranchName": "main",
+
+  "SteamAppId": "244850",
+  "DefaultWorkshopVisibility": "3",
+  "DefaultDescription": "Item created for StarCore Tournaments. https://github.com/StarCoreSE"
+}
