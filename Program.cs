@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -15,7 +16,10 @@ internal static class Program
 
     private static void Main(string[] args)
     {
-        Config = JsonSerializer.Deserialize<ConfigWrapper>(File.ReadAllText("config.json")) ?? throw new NullReferenceException("config.json is null!");
+        string configPath = typeof(Program).Assembly.Location;
+        configPath = configPath.Substring(0, configPath.LastIndexOf('\\')) + @"\config.json";
+
+        Config = JsonSerializer.Deserialize<ConfigWrapper>(File.ReadAllText(configPath)) ?? throw new NullReferenceException($"{configPath} could not be read!");
 
         var updatedFiles = args[0].Split(',');
         var changelog = args.Length > 1 ? args[1] : "No changelog specified.";
