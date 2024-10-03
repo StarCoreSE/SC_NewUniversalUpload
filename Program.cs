@@ -10,7 +10,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace SC_NewUniversalUpload;
 
-internal static class Program
+internal class Program
 {
     public static ConfigWrapper Config;
 
@@ -21,15 +21,75 @@ internal static class Program
 
         Config = JsonSerializer.Deserialize<ConfigWrapper>(File.ReadAllText(configPath)) ?? throw new NullReferenceException($"{configPath} could not be read!");
 
-        var updatedFiles = args[0].Split(',');
-        var changelog = args.Length > 1 ? args[1] : "No changelog specified.";
-        var branch = File.ReadAllText(Config.RepositoryPath + @".git\HEAD").Trim();
-        branch = branch.Substring(branch.LastIndexOf('/') + 1);
+        if (args.Length == 0)
+        {
+            Console.WriteLine("No arguments were provided!");
+            return;
+        }
+
+        var thisBranch = File.ReadAllText(Config.RepositoryPath + @".git\HEAD").Trim();
+        thisBranch = thisBranch.Substring(thisBranch.LastIndexOf('/') + 1);
+
+        switch (args[0])
+        {
+            case "deletebranch":
+                new Program(args[1]).DeleteBranch();
+                break;
+            case "uploadall":
+                new Program(thisBranch).ForceUploadAll();
+                break;
+            default:
+                new Program(thisBranch).LocateAndUploadMods(args[0].Split(','), args.Length > 1 ? args[1] : "No changelog specified.");
+                break;
+        }
+    }
+
+
+    public string Branch;
+
+    public Program(string branch)
+    {
         Console.WriteLine("Current branch: " + branch);
+        Branch = branch;
+    }
+
+    #region ForceUploadAll
+
+    public void ForceUploadAll()
+    {
+        foreach (var mod in LocateAllMods(Config.RepositoryPath))
+        {
+            UploadMod(mod, "Force-uploaded.");
+        }
+    }
+
+    #endregion
+
+    #region Delete Branch
+
+    // This doesn't work :(
+    public void DeleteBranch()
+    {
+        var branchModIds = LocateAllModInfos(Config.RepositoryPath).Where(path => path.Contains(Branch)).Select(RetrieveModId);
+        Console.WriteLine("Workshop mods to be deleted:");
+        foreach (var modId in branchModIds)
+        {
+            Console.Write("- " + modId);
+
+            Console.WriteLine(" (finished)");
+        }
+    }
+
+    #endregion
+
+    #region Upload Mods
+
+    public void LocateAndUploadMods(string[] updatedFiles, string changelog)
+    {
         Console.WriteLine("Changelog: " + changelog);
         Console.WriteLine("Changed files:\n-   " + string.Join("\n-   ", updatedFiles));
 
-        var updatedModsCt = 0;
+        int updatedModsCt = 0;
 
         foreach (var modPath in LocateAllMods(Config.RepositoryPath))
         {
@@ -51,17 +111,103 @@ internal static class Program
             // If any files in the mod were updated OR we're creating a new branch, upload it.
             var wasThisModUpdated =
                 updatedFiles.Any(editedFile => (Config.RepositoryPath + editedFile).Contains(modPath)) ||
-                !File.Exists($@"{modPath}\modinfo_{branch}.sbmi");
+                !File.Exists($@"{modPath}\modinfo_{Branch}.sbmi");
 
             if (!wasThisModUpdated)
                 continue;
 
-            UploadMod(modPath, branch, changelog);
+            UploadMod(modPath, changelog);
             updatedModsCt++;
         }
 
         Console.WriteLine($"Updated {updatedModsCt} mods.");
     }
+
+    /// <summary>
+    ///     Uploads a mod via SteamCMD.
+    /// </summary>
+    /// <param name="modPath"></param>
+    /// <param name="Branch"></param>
+    /// <param name="changelog"></param>
+    private void UploadMod(string modPath, string changelog)
+    {
+        var modName = modPath.Substring(modPath.LastIndexOf('\\') + 1);
+        var modId = "";
+        Console.WriteLine($"{modName}: Mod was updated.");
+
+        if (File.Exists($@"{modPath}\modinfo_{Branch}.sbmi"))
+            modId = RetrieveModId($@"{modPath}\modinfo_{Branch}.sbmi");
+        Console.WriteLine($"{modName}: ModId: " + modId);
+
+        var vdfFile = File.CreateText($@"{Config.AppdataModsPath}\item.vdf");
+
+        vdfFile.Write(CreateVdfData(modId, modPath, changelog, modName));
+        vdfFile.Flush();
+        vdfFile.Close();
+
+        string stdout;
+        RunSteamCmd(
+            $"+login {Config.UploaderAccountName} {Config.UploaderAccountPassword} +workshop_build_item {Config.AppdataModsPath}\\item.vdf +quit",
+            out stdout);
+        if (modId == "")
+        {
+            modId = Regex.Match(stdout, @"(?<=PublishFileID )\d*").Value;
+            Console.WriteLine("New ModID: " + modId);
+
+            var sbmiFile = File.CreateText($@"{modPath}\modinfo_{Branch}.sbmi");
+            {
+                sbmiFile.WriteLine("<?xml version=\"1.0\"?>");
+                sbmiFile.WriteLine(
+                    "<MyObjectBuilder_ModInfo xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+                sbmiFile.WriteLine($"  <SteamIDOwner>{Config.UploaderAccountSteamId}</SteamIDOwner>");
+                sbmiFile.WriteLine("  <WorkshopId>0</WorkshopId>");
+                sbmiFile.WriteLine("  <WorkshopIds>");
+                sbmiFile.WriteLine("    <WorkshopId>");
+                sbmiFile.WriteLine($"      <Id>{modId}</Id>");
+                sbmiFile.WriteLine("      <ServiceName>Steam</ServiceName>");
+                sbmiFile.WriteLine("    </WorkshopId>");
+                sbmiFile.WriteLine("  </WorkshopIds>");
+                sbmiFile.WriteLine("</MyObjectBuilder_ModInfo>");
+            }
+            sbmiFile.Flush();
+            sbmiFile.Close();
+        }
+
+        Console.WriteLine($"{modName}: Finished uploading!");
+    }
+
+    private string CreateVdfData(string modId, string modPath, string changelog, string modName = "")
+    {
+        StringBuilder vdfFile = new StringBuilder();
+
+        vdfFile.AppendLine("\"workshopitem\"");
+        vdfFile.AppendLine("{");
+        vdfFile.AppendLine($"    \"appid\" \"{Config.SteamAppId}\"");
+
+        if (modId == "")
+        {
+            if (File.Exists($"{modPath}\\thumb.jpg"))
+                vdfFile.AppendLine($"    \"previewfile\" \"{modPath}\\thumb.jpg\"");
+            vdfFile.AppendLine($"    \"visibility\" \"{Config.DefaultWorkshopVisibility}\"");
+            vdfFile.AppendLine($"    \"title\" \"{modName}_{Branch}\"");
+            vdfFile.AppendLine(
+                $"    \"description\" \"{Config.DefaultDescription}\"");
+        }
+        else
+        {
+            vdfFile.AppendLine($"    \"publishedfileid\" \"{modId}\"");
+        }
+
+        vdfFile.AppendLine($"    \"contentfolder\" \"{modPath}\"");
+        vdfFile.AppendLine($"    \"changenote\" \"{changelog}\"");
+        vdfFile.AppendLine("}");
+
+        return vdfFile.ToString();
+    }
+
+    #endregion
+
+    #region Static Methods
 
     /// <summary>
     ///     Recursively locates all folders containing a *.sbmi file.
@@ -94,83 +240,6 @@ internal static class Program
     }
 
     /// <summary>
-    ///     Uploads a mod via SteamCMD.
-    /// </summary>
-    /// <param name="modPath"></param>
-    /// <param name="branch"></param>
-    /// <param name="changelog"></param>
-    private static void UploadMod(string modPath, string branch, string changelog)
-    {
-        var modName = modPath.Substring(modPath.LastIndexOf('\\') + 1);
-        var modId = "";
-        Console.WriteLine($"{modName}: Mod was updated.");
-
-        if (File.Exists($@"{modPath}\modinfo_{branch}.sbmi"))
-            modId = Regex.Match(File.ReadAllText($@"{modPath}\modinfo_{branch}.sbmi"), @"\d*(?=<\/Id>)").Value;
-        Console.WriteLine($"{modName}: ModId: " + modId);
-
-        var vdfFile = File.CreateText($@"{Config.AppdataModsPath}\item.vdf");
-
-        if (modId == "")
-        {
-            vdfFile.WriteLine($"\"workshopitem\"");
-            vdfFile.WriteLine("{");
-            vdfFile.WriteLine($"    \"appid\" \"{Config.SteamAppId}\"");
-            vdfFile.WriteLine($"    \"previewfile\" \"{modPath}\\thumb.jpg\"");
-            vdfFile.WriteLine($"    \"visibility\" \"{Config.DefaultWorkshopVisibility}\"");
-            vdfFile.WriteLine($"    \"title\" \"{modName}_{branch}\"");
-            vdfFile.WriteLine(
-                $"    \"description\" \"{Config.DefaultDescription}\"");
-            vdfFile.WriteLine($"    \"contentfolder\" \"{modPath}\"");
-            vdfFile.WriteLine($"    \"changenote\" \"{changelog}\"");
-            vdfFile.WriteLine("}");
-        }
-        else
-        {
-            vdfFile.WriteLine("\"workshopitem\"");
-            vdfFile.WriteLine("{");
-            vdfFile.WriteLine($"    \"appid\" \"{Config.SteamAppId}\"");
-            vdfFile.WriteLine($"    \"publishedfileid\" \"{modId}\"");
-            vdfFile.WriteLine($"    \"contentfolder\" \"{modPath}\"");
-            vdfFile.WriteLine($"    \"changenote\" \"{changelog}\"");
-            vdfFile.WriteLine("}");
-        }
-
-        vdfFile.Flush();
-        vdfFile.Close();
-
-        string stdout;
-        RunSteamCmd(
-            $"+login {Config.UploaderAccountName} {Config.UploaderAccountPassword} +workshop_build_item {Config.AppdataModsPath}\\item.vdf +quit",
-            out stdout);
-        if (modId == "")
-        {
-            modId = Regex.Match(stdout, @"(?<=PublishFileID )\d*").Value;
-            Console.WriteLine("New ModID: " + modId);
-
-            var sbmiFile = File.CreateText($@"{modPath}\modinfo_{branch}.sbmi");
-            {
-                sbmiFile.WriteLine("<?xml version=\"1.0\"?>");
-                sbmiFile.WriteLine(
-                    "<MyObjectBuilder_ModInfo xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
-                sbmiFile.WriteLine($"  <SteamIDOwner>{Config.UploaderAccountSteamId}</SteamIDOwner>");
-                sbmiFile.WriteLine("  <WorkshopId>0</WorkshopId>");
-                sbmiFile.WriteLine("  <WorkshopIds>");
-                sbmiFile.WriteLine("    <WorkshopId>");
-                sbmiFile.WriteLine($"      <Id>{modId}</Id>");
-                sbmiFile.WriteLine("      <ServiceName>Steam</ServiceName>");
-                sbmiFile.WriteLine("    </WorkshopId>");
-                sbmiFile.WriteLine("  </WorkshopIds>");
-                sbmiFile.WriteLine("</MyObjectBuilder_ModInfo>");
-            }
-            sbmiFile.Flush();
-            sbmiFile.Close();
-        }
-
-        Console.WriteLine($"{modName}: Finished uploading!");
-    }
-
-    /// <summary>
     ///     Triggers the SteamCMD process, and locks the current thread until it is completed.
     /// </summary>
     /// <param name="args">Space-seperated arguments.</param>
@@ -181,7 +250,6 @@ internal static class Program
         {
             StartInfo = new ProcessStartInfo
             {
-                //FileName = Config.Bin64Path + "SEWorkshopTool.exe",
                 FileName = Config.SteamCmdPath,
                 Arguments = args,
                 UseShellExecute = false,
@@ -198,7 +266,9 @@ internal static class Program
             if (!process.StandardOutput.EndOfStream)
             {
                 var line = process.StandardOutput.ReadLine();
-                //Console.WriteLine(line);
+                #if (DEBUG)
+                Console.WriteLine(line);
+                #endif
                 stdoutBuilder.AppendLine(line);
             }
 
@@ -211,4 +281,11 @@ internal static class Program
 
         stdout = stdoutBuilder.ToString();
     }
+
+    private static string RetrieveModId(string filePath)
+    {
+        return Regex.Match(File.ReadAllText(filePath), @"\d*(?=<\/Id>)").Value;
+    }
+
+    #endregion
 }
