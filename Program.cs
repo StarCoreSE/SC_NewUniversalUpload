@@ -60,7 +60,7 @@ internal class Program
 
     public void ForceUploadAll()
     {
-        foreach (var mod in LocateAllMods(Config.RepositoryPath))
+        foreach (var mod in LocateAllMods(Arguments["--repo"]))
         {
             UploadMod(mod, "Force-uploaded.");
         }
@@ -73,7 +73,7 @@ internal class Program
     // This doesn't work :(
     public void DeleteBranch()
     {
-        var branchModIds = LocateAllModInfos(Config.RepositoryPath).Where(path => path.Contains(Branch)).Select(RetrieveModId);
+        var branchModIds = LocateAllModInfos(Arguments["--repo"]).Where(path => path.Contains(Branch)).Select(RetrieveModId);
         Console.WriteLine("Workshop mods to be deleted:");
         foreach (var modId in branchModIds)
         {
@@ -94,7 +94,7 @@ internal class Program
 
         int updatedModsCt = 0;
 
-        foreach (var modPath in LocateAllMods(Config.RepositoryPath))
+        foreach (var modPath in LocateAllMods(Arguments["--repo"]))
         {
             // Remove old ModInfo.sbmi files. Technically they do no harm, but it's good for consistency.
             if (File.Exists(modPath + @"\modinfo.sbmi"))
@@ -113,7 +113,7 @@ internal class Program
 
             // If any files in the mod were updated OR we're creating a new branch, upload it.
             var wasThisModUpdated =
-                updatedFiles.Any(editedFile => (Config.RepositoryPath + editedFile).Contains(modPath)) ||
+                updatedFiles.Any(editedFile => Path.Join(Arguments["--repo"], editedFile).Contains(modPath)) ||
                 !File.Exists($@"{modPath}\modinfo_{Branch}.sbmi");
 
             if (!wasThisModUpdated)

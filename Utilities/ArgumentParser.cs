@@ -18,7 +18,7 @@ namespace SC_NewUniversalUpload.Utilities
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i].StartsWith('-'))
-                    _taggedArguments[args[i]] = SanitizeArgument(args[++i]);
+                    _taggedArguments[args[i]] = args[i+1].StartsWith('-') ? "" : SanitizeArgument(args[++i]);
                 else
                     UntaggedArguments.Add(SanitizeArgument(args[i]));
             }

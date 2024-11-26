@@ -11,7 +11,6 @@ internal class ConfigWrapper
         return JsonSerializer.Deserialize<ConfigWrapper>(File.ReadAllText(configPath)) ?? throw new NullReferenceException($"{configPath} could not be read!");
     }
 
-    public string RepositoryPath { get; set; }
     public string AppdataModsPath { get; set; }
     public string SteamCmdPath { get; set; } = @"C:\steamcmd\steamcmd.exe";
 
