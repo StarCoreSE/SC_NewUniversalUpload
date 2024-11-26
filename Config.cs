@@ -1,7 +1,16 @@
-﻿namespace SC_NewUniversalUpload;
+﻿using System.Text.Json;
+
+namespace SC_NewUniversalUpload;
 
 internal class ConfigWrapper
 {
+    public static ConfigWrapper Read(string configPath)
+    {
+        configPath = configPath[..configPath.LastIndexOf('\\')] + @"\config.json";
+
+        return JsonSerializer.Deserialize<ConfigWrapper>(File.ReadAllText(configPath)) ?? throw new NullReferenceException($"{configPath} could not be read!");
+    }
+
     public string RepositoryPath { get; set; }
     public string AppdataModsPath { get; set; }
     public string SteamCmdPath { get; set; } = @"C:\steamcmd\steamcmd.exe";

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using SC_NewUniversalUpload.Utilities;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace SC_NewUniversalUpload;
@@ -13,13 +14,11 @@ namespace SC_NewUniversalUpload;
 internal class Program
 {
     public static ConfigWrapper Config;
+    public static ArgumentParser Arguments;
 
     private static void Main(string[] args)
     {
-        string configPath = typeof(Program).Assembly.Location;
-        configPath = configPath.Substring(0, configPath.LastIndexOf('\\')) + @"\config.json";
-
-        Config = JsonSerializer.Deserialize<ConfigWrapper>(File.ReadAllText(configPath)) ?? throw new NullReferenceException($"{configPath} could not be read!");
+        Config = ConfigWrapper.Read(Path.Join(typeof(Program).Assembly.Location.Remove(typeof(Program).Assembly.Location.LastIndexOf('\\')), "config.json"));
 
         if (args.Length == 0)
         {
@@ -27,8 +26,12 @@ internal class Program
             return;
         }
 
-        var thisBranch = File.ReadAllText(Config.RepositoryPath + @".git\HEAD").Trim();
-        thisBranch = thisBranch.Substring(thisBranch.LastIndexOf('/') + 1);
+        Arguments = new ArgumentParser(args);
+
+        var thisBranch = File.ReadAllText(
+            Path.Join(Arguments["--repo"], @".git\HEAD")
+            ).Trim();
+        thisBranch = thisBranch[(thisBranch.LastIndexOf('/') + 1)..];
 
         switch (args[0])
         {
@@ -39,7 +42,7 @@ internal class Program
                 new Program(thisBranch).ForceUploadAll();
                 break;
             default:
-                new Program(thisBranch).LocateAndUploadMods(args[0].Split(','), args.Length > 1 ? args[1] : "No changelog specified.");
+                new Program(thisBranch).LocateAndUploadMods(Arguments["--changes"].Split(','), Arguments["--changelog"] ?? "No changelog specified.");
                 break;
         }
     }
@@ -147,7 +150,7 @@ internal class Program
 
         string stdout;
         RunSteamCmd(
-            $"+login {Config.UploaderAccountName} {Config.UploaderAccountPassword} +workshop_build_item {Config.AppdataModsPath}\\item.vdf +quit",
+            $@"+login {Config.UploaderAccountName} {Config.UploaderAccountPassword} +workshop_build_item {Config.AppdataModsPath}\item.vdf +quit",
             out stdout);
         if (modId == "")
         {
