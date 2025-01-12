@@ -44,9 +44,9 @@ namespace SC_NewUniversalUpload.Utilities
             return argument;
         }
 
-        public string? this[string key]
+        public string this[string key]
         {
-            get => _taggedArguments!.GetValueOrDefault(key, null);
+            get => _taggedArguments!.GetValueOrDefault(key, null) ?? throw new ArgumentException("Missing argument " + key);
             private set => throw new NotImplementedException();
         }
     }

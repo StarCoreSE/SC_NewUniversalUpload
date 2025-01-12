@@ -13,6 +13,7 @@ internal class ConfigWrapper
 
     public string AppdataModsPath { get; set; }
     public string SteamCmdPath { get; set; } = @"C:\steamcmd\steamcmd.exe";
+    public string MsBuildPath { get; set; } = @"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"; // TODO: Change
 
     public string UploaderAccountName { get; set; }
     public string UploaderAccountPassword { get; set; }
