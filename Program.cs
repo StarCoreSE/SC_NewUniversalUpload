@@ -7,7 +7,7 @@ namespace SC_NewUniversalUpload;
 
 internal partial class Program
 {
-    public static ConfigWrapper Config;
+    public static readonly ConfigWrapper Config = ConfigWrapper.Read(Path.Join(typeof(Program).Assembly.Location.Remove(typeof(Program).Assembly.Location.LastIndexOf('\\')), "config.json"));
     public static ArgumentParser Arguments;
 
     private static void Main(string[] args)
@@ -19,8 +19,6 @@ internal partial class Program
         #endif
         
         Console.WriteLine($"NewUniversalUpload - [{releaseType}]\nby Aristeas\n======================");
-
-        Config = ConfigWrapper.Read(Path.Join(typeof(Program).Assembly.Location.Remove(typeof(Program).Assembly.Location.LastIndexOf('\\')), "config.json"));
 
         if (args.Length == 0)
         {

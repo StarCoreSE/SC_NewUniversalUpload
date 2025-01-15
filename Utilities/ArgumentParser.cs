@@ -18,7 +18,10 @@ namespace SC_NewUniversalUpload.Utilities
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i].StartsWith('-'))
-                    _taggedArguments[args[i]] = args[i+1].StartsWith('-') ? "" : SanitizeArgument(args[++i]);
+                {
+                    if (args.Length > i + 1)
+                        _taggedArguments[args[i]] = args[i+1].StartsWith('-') ? "" : SanitizeArgument(args[++i]);
+                }
                 else
                     UntaggedArguments.Add(SanitizeArgument(args[i]));
             }
@@ -46,7 +49,7 @@ namespace SC_NewUniversalUpload.Utilities
 
         public string this[string key]
         {
-            get => _taggedArguments!.GetValueOrDefault(key, null) ?? throw new ArgumentException("Missing argument " + key);
+            get => _taggedArguments!.GetValueOrDefault(key, "");
             private set => throw new NotImplementedException();
         }
     }
