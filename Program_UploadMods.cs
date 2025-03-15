@@ -5,7 +5,7 @@ namespace SC_NewUniversalUpload
 {
     internal partial class Program
     {
-        public void LocateAndUploadMods(string[] updatedFiles, string changelog)
+        public void LocateAndUploadMods(HashSet<string> updatedFiles, string changelog)
         {
             Console.WriteLine("Changelog: " + changelog);
             Console.WriteLine("Changed files:\n-   " + string.Join("\n-   ", updatedFiles));

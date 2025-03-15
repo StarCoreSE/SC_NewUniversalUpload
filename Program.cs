@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using SC_NewUniversalUpload.Utilities;
@@ -45,11 +46,11 @@ internal partial class Program
                 break;
             case "build":
                 Console.WriteLine("Build invoked.");
-                new Program(thisBranch).BuildMods(Arguments["--changes"].Split(','));
+                new Program(thisBranch).BuildMods(GetChangedFiles(Arguments["--repo"]));
                 break;
             default:
                 Console.WriteLine("Upload invoked.");
-                new Program(thisBranch).LocateAndUploadMods(Arguments["--changes"].Split(','), Arguments["--changelog"] ?? "No changelog specified.");
+                new Program(thisBranch).LocateAndUploadMods(GetChangedFiles(Arguments["--repo"]), Arguments["--changelog"] ?? "No changelog specified.");
                 break;
         }
     }
@@ -112,8 +113,11 @@ internal partial class Program
     /// </summary>
     /// <param name="args">Space-seperated arguments.</param>
     /// <param name="stdout">The console output from the process.</param>
-    private static void RunCmd(string executablePath, string args, out string stdout)
+    private static void RunCmd(string executablePath, string args, out string stdout, string workingDirectory = "")
     {
+        #if (DEBUG)
+        Console.WriteLine($"Now executing \"{executablePath}\"");
+        #endif
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -123,7 +127,8 @@ internal partial class Program
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
+                WorkingDirectory = workingDirectory
             }
         };
         process.Start();
@@ -162,12 +167,37 @@ internal partial class Program
             Console.Error.Write(line);
         }
 
+        #if (DEBUG)
+        Console.WriteLine("\nFinished execution.");
+        #endif
+
         stdout = stdoutBuilder.ToString();
     }
 
     private static string RetrieveModId(string filePath)
     {
         return Regex.Match(File.ReadAllText(filePath), @"\d*(?=<\/Id>)").Value;
+    }
+
+    private static HashSet<string> GetChangedFiles(string repoPath)
+    {
+        // git show --name-only --oneline
+        // Show changelog with format:
+        // <hash> (<TO> -> <FROM>) <commit>
+        // <editfile>
+        // <nexteditfile>
+        RunCmd("git", "show --name-only --pretty=oneline", out string outstr, repoPath);
+
+        HashSet<string> validPaths = new();
+        foreach (var str in outstr.Split("\n"))
+        {
+            if (string.IsNullOrWhiteSpace(str) || str.IndexOf(' ') == 40)
+                continue;
+            string path = Path.Join(repoPath, str.Trim().Replace('/', '\\'));
+            validPaths.Add(path);
+        }
+
+        return validPaths;
     }
 
     #endregion

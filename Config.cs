@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace SC_NewUniversalUpload;
 
 internal class ConfigWrapper
 {
+    [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
     public static ConfigWrapper Read(string configPath)
     {
         configPath = configPath[..configPath.LastIndexOf('\\')] + @"\config.json";

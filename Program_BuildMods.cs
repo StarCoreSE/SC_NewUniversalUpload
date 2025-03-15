@@ -8,7 +8,7 @@ namespace SC_NewUniversalUpload
         /// Builds all edited mods via MSBuild.
         /// </summary>
         /// <param name="updatedFiles"></param>
-        public void BuildMods(string[] updatedFiles)
+        public void BuildMods(HashSet<string> updatedFiles)
         {
             Console.WriteLine("Changed files:\n-   " + string.Join("\n-   ", updatedFiles));
 
