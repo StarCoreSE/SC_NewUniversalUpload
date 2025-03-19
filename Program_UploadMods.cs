@@ -68,6 +68,9 @@ namespace SC_NewUniversalUpload
 
             // Generate VDF file (mod metadata for steam)
             var vdfFile = File.CreateText($@"{Config.AppdataModsPath}\item.vdf");
+
+            string newFile = CreateVdfData(modId, uploadFolder, changelog, modName);
+
             vdfFile.Write(CreateVdfData(modId, uploadFolder, changelog, modName));
             vdfFile.Flush();
             vdfFile.Close();
@@ -80,6 +83,13 @@ namespace SC_NewUniversalUpload
 
             Directory.Delete(uploadFolder, true);
             Console.WriteLine($"{modName}: Removed mod from {uploadFolder}.");
+
+            if (stdout.Contains("FAILED"))
+            {
+                Console.WriteLine("Failed to upload mod! SteamCMD logs:\n" + stdout.Replace("\n", "\n|   "));
+                Environment.ExitCode = 1;
+                return;
+            }
 
             // Generate modinfo.sbmi if needed
             if (modId == "")

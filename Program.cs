@@ -181,17 +181,16 @@ internal partial class Program
 
     private static HashSet<string> GetChangedFiles(string repoPath)
     {
-        // git show --name-only --oneline
+        // git diff --name-only HEAD~1 HEAD
         // Show changelog with format:
-        // <hash> (<TO> -> <FROM>) <commit>
-        // <editfile>
+        // <editedfile>
         // <nexteditfile>
-        RunCmd("git", "show --name-only --pretty=oneline", out string outstr, repoPath);
+        RunCmd("git", "diff --name-only HEAD~1 HEAD", out string outstr, repoPath);
 
         HashSet<string> validPaths = new();
         foreach (var str in outstr.Split("\n"))
         {
-            if (string.IsNullOrWhiteSpace(str) || str.IndexOf(' ') == 40)
+            if (string.IsNullOrWhiteSpace(str))
                 continue;
             string path = Path.Join(repoPath, str.Trim().Replace('/', '\\'));
             validPaths.Add(path);
