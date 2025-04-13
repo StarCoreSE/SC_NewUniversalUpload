@@ -29,10 +29,15 @@ namespace SC_NewUniversalUpload
                     File.Delete(modPath + @"\modinfo.sbmi");
                 }
 
+                bool disableUpload = File.Exists($@"{modPath}\uploaddisable_{Branch}.sbmi");
+                if (disableUpload)
+                    continue;
+
+                bool needsSbmiUpdate = !File.Exists($@"{modPath}\modinfo_{Branch}.sbmi");
+
                 // If any files in the mod were updated OR we're creating a new branch, upload it.
-                var wasThisModUpdated =
-                    updatedFiles.Any(editedFile => Path.Join(Arguments["--repo"], editedFile).Contains(modPath)) ||
-                    !File.Exists($@"{modPath}\modinfo_{Branch}.sbmi");
+                bool wasThisModUpdated =
+                    updatedFiles.Any(editedFile => Path.Join(Arguments["--repo"], editedFile).Contains(modPath)) || needsSbmiUpdate;
 
                 if (!wasThisModUpdated)
                     continue;
