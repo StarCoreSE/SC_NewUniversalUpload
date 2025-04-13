@@ -40,6 +40,7 @@ namespace SC_NewUniversalUpload
             if (stdout.Contains("error"))
             {
                 Console.Error.WriteLine($"Failed to build \"{modPath}\"!");
+                Console.Error.WriteLine("|    " + stdout.ReplaceLineEndings("\n|    "));
                 Environment.ExitCode = 1;
             }
         }
