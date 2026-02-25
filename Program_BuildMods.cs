@@ -34,7 +34,7 @@ namespace SC_NewUniversalUpload
         {
             Console.WriteLine($"Starting build for {modPath}...");
             // Pull generic SLN files
-            ZipFile.ExtractToDirectory(Path.Join(Arguments["--repo"], "VisualStudioSLNs.zip"), modPath);
+            ZipFile.ExtractToDirectory(Path.Join(Arguments["--repo"], "VisualStudioSLNs.zip"), modPath, true);
 
             RunCmd(Config.MsBuildPath, $"\"{Path.Join(modPath, "Generic.sln")}\" -restore -noWarn:NU1903,CS0649 -verbosity:m", out var stdout); // TODO -verbosity:m
             if (stdout.Contains("error"))

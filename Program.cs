@@ -116,7 +116,7 @@ internal partial class Program
     private static void RunCmd(string executablePath, string args, out string stdout, string workingDirectory = "")
     {
         #if (DEBUG)
-        Console.WriteLine($"Now executing \"{executablePath}\"");
+        Console.WriteLine($"Now executing:\n  & \"{executablePath}\" {args}");
         #endif
         var process = new Process
         {
