@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace SC_NewUniversalUpload;
@@ -17,6 +16,8 @@ internal class ConfigWrapper
     public required string AppdataModsPath { get; init; }
     public string SteamCmdPath { get; init; } = @"C:\steamcmd\steamcmd.exe";
     public string MsBuildPath { get; init; } = @"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"; // TODO: Change
+
+    public string BinaryPath { get; init; } = @"C:\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64";
 
     public required string UploaderAccountName { get; init; }
     public required string UploaderAccountPassword { get; init; }

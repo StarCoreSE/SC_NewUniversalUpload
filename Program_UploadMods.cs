@@ -73,10 +73,10 @@ namespace SC_NewUniversalUpload
             if (isMdkProject)
             {
                 // don't show the interaction bit
-                File.WriteAllText(Path.Join(modPath, "mdk.local.ini"), """
+                File.WriteAllText(Path.Join(modPath, "mdk.local.ini"), $"""
                                                                        [mdk]
-                                                                       output=auto
-                                                                       binarypath=auto
+                                                                       output={Config.AppdataModsPath}
+                                                                       binarypath={Config.BinaryPath}
                                                                        interactive=DoNothing
                                                                        """);
                 //string cmdout;

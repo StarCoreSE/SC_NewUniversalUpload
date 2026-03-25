@@ -3,6 +3,7 @@
   "AppdataModsPath": "C:\\Users\\MuzzHammer\\AppData\\Roaming\\SpaceEngineers\\Mods\\",
   "SteamCmdPath": "C:\\steamcmd\\steamcmd.exe",
   "MsBuildPath": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
+  "BinaryPath": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\SpaceEngineers\\Bin64",
 
   "UploaderAccountName": "invalssteamlinkbot",
   "UploaderAccountPassword": "[redacted]",
