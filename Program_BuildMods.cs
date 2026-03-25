@@ -30,13 +30,27 @@ namespace SC_NewUniversalUpload
             Console.WriteLine($"Built {updatedModsCt} mods.");
         }
 
-        private void BuildMod(string modPath)
+        private void BuildMod(string modPath, bool extractSlns = true)
         {
             Console.WriteLine($"Starting build for {modPath}...");
-            // Pull generic SLN files
-            ZipFile.ExtractToDirectory(Path.Join(Arguments["--repo"], "VisualStudioSLNs.zip"), modPath, true);
 
-            RunCmd(Config.MsBuildPath, $"\"{Path.Join(modPath, "Generic.sln")}\" -restore -noWarn:NU1903,CS0649 -verbosity:m", out var stdout); // TODO -verbosity:m
+            string slnPath;
+
+            // Pull generic SLN files
+            if (extractSlns)
+            {
+                ZipFile.ExtractToDirectory(Path.Join(Arguments["--repo"], "VisualStudioSLNs.zip"), modPath, true);
+                slnPath = Path.Join(modPath, "Generic.sln");
+            }
+            else
+            {
+                slnPath = Directory.EnumerateFiles(modPath).FirstOrDefault(p => p.EndsWith(".sln"), null);
+            }
+
+            if (string.IsNullOrWhiteSpace(slnPath))
+                throw new FileNotFoundException("Missing MDK-ready solution file!");
+
+            RunCmd(Config.MsBuildPath, $"\"{slnPath}\" -restore -noWarn:NU1903,CS0649 -verbosity:m", out var stdout); // TODO -verbosity:m
             if (stdout.Contains("error"))
             {
                 Console.Error.WriteLine($"Failed to build \"{modPath}\"!");

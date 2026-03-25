@@ -66,10 +66,32 @@ namespace SC_NewUniversalUpload
             Console.WriteLine($"{modName}: ModId: " + modId);
 
             // Copy all non-ignored files
-            var uploadFolder = Path.Join(Config.AppdataModsPath, modId);
-            Directory.CreateDirectory(uploadFolder);
-            RecursiveCopy(modPath, uploadFolder, ".git", ".github", ".vs", "bin", "obj", "Properties");
-            Console.WriteLine($"{modName}: Copied mod to {uploadFolder}.");
+            var uploadFolder = Path.Join(Config.AppdataModsPath, modName);
+
+            // MDK projects need to be built instead of copied; otherwise they won't upload properly.
+            bool isMdkProject = File.Exists(Path.Join(modPath, "mdk.ini"));
+            if (isMdkProject)
+            {
+                // don't show the interaction bit
+                File.WriteAllText(Path.Join(modPath, "mdk.local.ini"), """
+                                                                       [mdk]
+                                                                       output=auto
+                                                                       binarypath=auto
+                                                                       interactive=DoNothing
+                                                                       """);
+                //string cmdout;
+                //RunCmd("cmd.exe", "/C dotnet build", out cmdout, modPath);
+                //Console.Write(cmdout);
+                BuildMod(modPath, false);
+                File.Delete(Path.Join(uploadFolder, "mdk.ini"));
+                File.Delete(Path.Join(uploadFolder, "mdk.meta"));
+            }
+            else
+            {
+                Directory.CreateDirectory(uploadFolder);
+                RecursiveCopy(modPath, uploadFolder, ".git", ".github", ".vs", "bin", "obj", "Properties");
+                Console.WriteLine($"{modName}: Copied mod to {uploadFolder}.");
+            }
 
             // Generate VDF file (mod metadata for steam)
             var vdfFile = File.CreateText($@"{Config.AppdataModsPath}\item.vdf");
